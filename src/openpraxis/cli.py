@@ -5,7 +5,9 @@ from pathlib import Path
 from uuid import uuid4
 
 import typer
+from rich import box
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 from openpraxis.config import get_settings
@@ -64,7 +66,14 @@ def add(
     if not force:
         existing = get_input_by_hash(conn, file_hash)
         if existing:
-            console.print("[yellow]Same content already exists; use --force to reprocess.[/yellow]")
+            console.print(
+                Panel(
+                    "Same content already exists; use --force to reprocess.",
+                    title="Skipped",
+                    border_style="yellow",
+                    box=box.ROUNDED,
+                )
+            )
             conn.close()
             return
     input_id = str(uuid4())
@@ -94,7 +103,9 @@ def add(
             scene.constraints,
             scene.expected_structure_hint,
         )
-        console.print(f"\n[dim]Use [bold]praxis answer {scene.scene_id}[/bold] to submit your answer[/dim]")
+        console.print(
+            f"\n[dim]Next: use [bold cyan]praxis answer {scene.scene_id}[/bold cyan] to submit your answer[/dim]"
+        )
     else:
         upsert_graph_thread(conn, thread_id, input_id, status="completed")
     conn.close()
@@ -138,7 +149,9 @@ def practice(input_id: str = typer.Argument(...)) -> None:
             scene.constraints,
             scene.expected_structure_hint,
         )
-        console.print(f"\n[dim]Use [bold]praxis answer {scene.scene_id}[/bold] to submit your answer[/dim]")
+        console.print(
+            f"\n[dim]Next: use [bold cyan]praxis answer {scene.scene_id}[/bold cyan] to submit your answer[/dim]"
+        )
     conn.close()
 
 
@@ -171,7 +184,7 @@ def answer(
     elif file:
         answer_text = file.read_text(encoding="utf-8", errors="replace")
     else:
-        console.print("Enter your answer on stdin, end with EOF (Ctrl+D):")
+        console.print("[bold cyan]Enter your answer on stdin[/bold cyan] [dim](end with EOF / Ctrl+D)[/dim]")
         answer_text = ""
         try:
             while True:
@@ -239,9 +252,13 @@ def show(id: str = typer.Argument(...)) -> None:
         raise typer.Exit(1)
 
     input_id = inp["id"]
-    console.print(f"[bold]Input[/bold] {input_id[:8]}...")
-    console.print(f"[dim]File:[/dim] {inp['file_path'] or '(none)'}")
-    console.print(f"[dim]Type:[/dim] {inp['input_type'] or '(untagged)'}")
+    meta = Table.grid(expand=False, padding=(0, 1))
+    meta.add_column(style="bold cyan", width=10)
+    meta.add_column(style="white")
+    meta.add_row("Input", f"{input_id[:8]}...")
+    meta.add_row("File", inp["file_path"] or "(none)")
+    meta.add_row("Type", inp["input_type"] or "(untagged)")
+    console.print(Panel(meta, border_style="blue", box=box.ROUNDED))
     console.print()
 
     # Tagger output
@@ -257,7 +274,7 @@ def show(id: str = typer.Argument(...)) -> None:
         # Response for this scene
         resp = get_response_by_scene(conn, sc.scene_id)
         if resp:
-            console.print(f"\n[bold]Answer[/bold] (preview):")
+            console.print("\n[bold]Answer[/bold] (preview):")
             preview = resp["answer_text"][:500]
             console.print(f"  {preview}{'...' if len(resp['answer_text']) > 500 else ''}\n")
             if resp["perf_json"]:
@@ -332,11 +349,11 @@ def list_inputs_cmd(
     """List recent inputs."""
     _settings, conn = _get_conn()
     rows = list_inputs(conn, input_type=type, limit=limit)
-    table = Table(title="Input list")
-    table.add_column("id", style="dim")
-    table.add_column("type")
-    table.add_column("file", style="dim")
-    table.add_column("created_at")
+    table = Table(title="Input list", box=box.SIMPLE_HEAD, row_styles=["none", "dim"])
+    table.add_column("id", style="cyan", no_wrap=True)
+    table.add_column("type", style="green")
+    table.add_column("file", style="white")
+    table.add_column("created_at", style="dim")
     for r in rows:
         file_name = Path(r["file_path"]).name if r["file_path"] else "-"
         table.add_row(
