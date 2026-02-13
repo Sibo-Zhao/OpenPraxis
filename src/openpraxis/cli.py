@@ -10,7 +10,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from openpraxis.config import get_settings
+from openpraxis.config import (
+    get_settings,
+    set_runtime_llm_overrides,
+    SUPPORTED_LLM_PROVIDERS,
+)
 from openpraxis.db import (
     ensure_schema,
     get_connection,
@@ -37,6 +41,47 @@ from openpraxis.graph import get_compiled_graph, PraxisState
 
 app = typer.Typer(name="praxis", help="OpenPraxis - Turn notes into structured practice and cognitive insights")
 console = Console()
+
+
+@app.callback()
+def global_options(
+    provider: str | None = typer.Option(
+        None,
+        "--provider",
+        help=f"LLM provider ({'|'.join(SUPPORTED_LLM_PROVIDERS)})",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="Override LLM API key for this command.",
+    ),
+    base_url: str | None = typer.Option(
+        None,
+        "--base-url",
+        help="Override LLM base URL for this command.",
+    ),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        help="Override LLM model for this command.",
+    ),
+    temperature: float | None = typer.Option(
+        None,
+        "--temperature",
+        help="Override LLM temperature for this command.",
+    ),
+) -> None:
+    """Global runtime LLM overrides."""
+    try:
+        set_runtime_llm_overrides(
+            provider=provider,
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            temperature=temperature,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc), param_hint="--provider") from exc
 
 
 def _hash_file(path: Path) -> str:

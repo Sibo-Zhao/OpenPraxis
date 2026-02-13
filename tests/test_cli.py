@@ -1,8 +1,6 @@
 """CLI command parsing and output tests."""
 
 import json
-import sqlite3
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -45,6 +43,7 @@ def test_cli_help() -> None:
     assert result.exit_code == 0
     assert "add" in result.output
     assert "list" in result.output
+    assert "--provider" in result.output
 
 
 def test_add_help() -> None:
@@ -306,3 +305,24 @@ def test_add_duplicate(tmp_db, tmp_path) -> None:
     result = runner.invoke(app, ["add", str(test_file)])
     assert result.exit_code == 0
     assert "already exists" in result.output
+
+
+def test_global_provider_override_option(tmp_db, tmp_path, mock_tagger_output, mock_scene) -> None:
+    test_file = tmp_path / "provider.md"
+    test_file.write_text("Provider override test")
+
+    mock_graph = MagicMock()
+    mock_graph.invoke.return_value = {"tagger_output": mock_tagger_output, "scene": mock_scene}
+
+    with patch("openpraxis.cli.get_compiled_graph", return_value=mock_graph), \
+         patch("openpraxis.cli.set_runtime_llm_overrides") as mock_overrides:
+        result = runner.invoke(app, ["--provider", "kimi", "add", str(test_file)])
+
+    assert result.exit_code == 0
+    mock_overrides.assert_called_once_with(
+        provider="kimi",
+        api_key=None,
+        base_url=None,
+        model=None,
+        temperature=None,
+    )

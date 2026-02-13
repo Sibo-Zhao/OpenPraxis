@@ -42,6 +42,14 @@ praxis export [--format md|json] [--output <path>]
 praxis list [--type report|interview|reflection|idea] [--limit N]
 ```
 
+Global runtime LLM overrides (for a single command):
+
+```bash
+praxis --provider doubao --model doubao-seed-1-6-251015 add note.md
+praxis --provider kimi --model kimi-k2-turbo-preview practice <input_id>
+praxis --provider deepseek --model deepseek-chat answer <scene_id> --file answer.md
+```
+
 ## Development
 
 ```bash
