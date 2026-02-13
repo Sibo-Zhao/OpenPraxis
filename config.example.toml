@@ -1,0 +1,13 @@
+# Copy to ~/.openpraxis/config.toml and fill in your values.
+# OPENAI_API_KEY can also be set via environment variable (takes precedence).
+
+[llm]
+api_key = "sk-..."
+model = "gpt-4o"
+temperature = 0.7
+
+[storage]
+data_dir = "~/.openpraxis/data"
+
+[display]
+color = true
