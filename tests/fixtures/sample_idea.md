@@ -1,16 +1,16 @@
-# 产品创意：个人知识库的「练习模式」
+# Product Idea: Practice Mode for Personal Knowledge Bases
 
-## 想法
+## Concept
 
-在读笔记、文章时，不是只高亮和收藏，而是定期被系统「考」：根据笔记内容生成 2–5 分钟的微练习（解释、对比、设计决策），用户口头或文字回答后得到反馈与洞察卡。
+Instead of only highlighting and bookmarking when reading notes and articles, the system periodically "quizzes" the user: generating 2–5 minute micro-practices (explain, compare, design decision) based on note content. Users answer verbally or in writing, then receive feedback and insight cards.
 
-## 假设
+## Hypotheses
 
-- 用户愿意为「把知识用起来」付出 2–5 分钟/次。
-- 用 LLM 生成题目与评估，质量可接受且成本可控。
-- 洞察卡（缺口类型、升级模式、微练习）能带来持续复访。
+- Users are willing to spend 2–5 minutes per session to "put knowledge to use."
+- LLM-generated questions and evaluations are acceptable in quality and cost-effective.
+- Insight cards (gap types, upgrade patterns, micro-practices) can drive sustained revisits.
 
-## 验证方式
+## Validation Plan
 
-- 先做 10 人内测：每人 5 条笔记 → 各生成 3 道题 → 收集完成率与 NPS。
-- 若完成率 > 60% 且 NPS > 30，再考虑做 MVP。
+- Start with 10-person internal beta: 5 notes per person → generate 3 questions each → collect completion rate and NPS.
+- If completion rate > 60% and NPS > 30, proceed to build MVP.

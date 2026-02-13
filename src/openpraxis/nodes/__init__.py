@@ -1,4 +1,4 @@
-"""LangGraph 节点：Tagger / Practice / Insight。"""
+"""LangGraph nodes: Tagger / Practice / Insight."""
 
 from openpraxis.nodes.tagger import tagger_node
 from openpraxis.nodes.practice import (

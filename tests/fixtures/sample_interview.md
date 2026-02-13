@@ -1,18 +1,18 @@
-# 一次系统设计面试复盘
+# System Design Interview Retrospective
 
-## 题目
+## Problem
 
-设计一个支持千万级用户的短链接服务。
+Design a URL shortening service supporting tens of millions of users.
 
-## 我的思路
+## My Approach
 
-先问了读写比例和延迟要求，然后从存储、短码生成、高可用几块展开。存储用了 KV + DB 的方案，短码用 base62 编码雪花 ID。
+I started by asking about read/write ratio and latency requirements, then expanded across storage, short code generation, and high availability. For storage I proposed a KV + DB approach; for short codes I used base62-encoded snowflake IDs.
 
-## 反馈
+## Feedback
 
-面试官指出：没有明确 CAP 取舍和一致性模型；对热点 key 的应对（本地缓存、多级缓存）说得不够具体。
+The interviewer pointed out: I did not clarify CAP trade-offs and the consistency model; my handling of hot keys (local cache, multi-level caching) was not specific enough.
 
-## 收获
+## Takeaways
 
-- 系统设计要先锚定约束（QPS、延迟、一致性）。
-- 热点与降级方案要提前想好，不能只说「加缓存」。
+- System design should anchor constraints first (QPS, latency, consistency).
+- Hot-key and degradation strategies must be thought through in advance — simply saying "add a cache" is not enough.

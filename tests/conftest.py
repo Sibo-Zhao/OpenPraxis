@@ -1,4 +1,4 @@
-"""共享 fixtures 与 mock。"""
+"""Shared fixtures and mocks."""
 
 import pytest
 from unittest.mock import patch
@@ -26,7 +26,7 @@ from openpraxis.models import (
 def mock_tagger_output() -> TaggerOutput:
     return TaggerOutput(
         input_type=InputType.REPORT,
-        summary="一篇关于 RAG 流水线架构的技术报告。",
+        summary="A technical report on RAG pipeline architecture.",
         tags=Tags(
             topics=["RAG"],
             domains=["ML System"],
@@ -56,10 +56,10 @@ def mock_scene() -> PracticeScene:
         scene_id="test-scene-id",
         scene_type=SceneType.EXPLAIN,
         role="Tech Lead",
-        task="在 3 分钟内解释 RAG 的失败模式。",
-        constraints=["3 minutes", "包含 1 个 failure mode"],
+        task="Explain RAG failure modes in 3 minutes.",
+        constraints=["3 minutes", "Include 1 failure mode"],
         rubric=["clarity", "reasoning_depth", "decision_quality", "communication"],
-        expected_structure_hint=["定义", "例子", "缓解"],
+        expected_structure_hint=["Definition", "Example", "Mitigation"],
     )
 
 
@@ -72,7 +72,7 @@ def mock_performance() -> PracticePerformance:
             decision_quality=6,
             communication=7,
         ),
-        improvement_vectors=["可补充具体案例", "时间分配可更明确"],
+        improvement_vectors=["Add concrete examples", "Time allocation could be clearer"],
     )
 
 
@@ -81,12 +81,12 @@ def mock_insight_list() -> InsightList:
     return InsightList(
         cards=[
             InsightCard(
-                insight_title="结构化表达缺口",
+                insight_title="Structured expression gap",
                 insight_type=InsightType.STRUCTURING_GAP,
-                what_happened="回答未按定义→例子→缓解展开",
-                why_it_matters="面试中结构不清会降低可信度",
-                upgrade_pattern="Always do 定义 → 例子 → 缓解",
-                micro_practice="30 秒内说出一个概念的三个要点",
+                what_happened="Answer did not follow definition → example → mitigation",
+                why_it_matters="Unclear structure in interviews reduces credibility",
+                upgrade_pattern="Always do definition → example → mitigation",
+                micro_practice="State three points of a concept in 30 seconds",
                 concepts=["RAG"],
                 skills=["structuring"],
                 scenes=["test-scene-id"],
@@ -103,7 +103,7 @@ def mock_llm(
     mock_performance: PracticePerformance,
     mock_insight_list: InsightList,
 ):
-    """Patch call_structured，按 response_model 返回对应 fixture。"""
+    """Patch call_structured to return the corresponding fixture by response_model."""
     from openpraxis.models import PracticeSceneLLM
 
     def fake_call(system_prompt, user_content, response_model, **kwargs):
@@ -125,7 +125,7 @@ def mock_llm(
             return mock_insight_list
         raise ValueError(f"Unknown response_model: {response_model}")
 
-    # Patch 在节点模块中的引用，否则节点已绑定到真实 call_structured
+    # Patch references in node modules; otherwise nodes are bound to real call_structured
     with patch("openpraxis.nodes.tagger.call_structured", side_effect=fake_call), \
          patch("openpraxis.nodes.practice.call_structured", side_effect=fake_call), \
          patch("openpraxis.nodes.insight.call_structured", side_effect=fake_call):

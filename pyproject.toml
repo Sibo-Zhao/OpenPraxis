@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "openpraxis"
 version = "0.1.0"
-description = "AI Bandwidth Amplifier - 将笔记转化为结构化实践与认知洞察"
+description = "AI Bandwidth Amplifier - turn notes into structured practice and actionable learning insights"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

@@ -1,4 +1,4 @@
-"""Pydantic 模型与枚举测试。"""
+"""Pydantic model and enum tests."""
 
 import pytest
 from pydantic import ValidationError

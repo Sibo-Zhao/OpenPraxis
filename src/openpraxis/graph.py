@@ -1,4 +1,4 @@
-"""LangGraph StateGraph 定义。"""
+"""LangGraph StateGraph definition."""
 
 import sqlite3
 from typing import TypedDict
@@ -27,14 +27,14 @@ class PraxisState(TypedDict, total=False):
 
 
 def route_after_tagger(state: PraxisState) -> str:
-    """条件边：根据 should_practice 决定是否进入 Practice。"""
+    """Conditional edge: enter Practice based on should_practice."""
     if state.get("should_practice"):
         return "practice_generator"
     return END
 
 
 def build_graph():
-    """构建 StateGraph（无 checkpointer）。"""
+    """Build StateGraph (no checkpointer)."""
     from openpraxis.nodes.practice import (
         human_answer_node,
         practice_evaluator_node,
@@ -65,7 +65,7 @@ def build_graph():
 
 
 def get_compiled_graph(db_path: str):
-    """带 SqliteSaver 的编译图。thread_id = input_id。"""
+    """Compiled graph with SqliteSaver. thread_id = input_id."""
     conn = sqlite3.connect(
         str(db_path) + ".checkpoints",
         check_same_thread=False,

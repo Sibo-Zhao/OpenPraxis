@@ -1,20 +1,20 @@
-# 线上故障复盘：数据库连接池耗尽
+# Incident Postmortem: Database Connection Pool Exhaustion
 
-## 经过
+## Timeline
 
-周三凌晨告警：API 大量 5xx，排查发现 DB 连接池被占满。重启应用后恢复，但持续有慢查询。
+Wednesday early morning alert: massive API 5xx errors. Investigation revealed the DB connection pool was fully occupied. Restarting the application restored service, but slow queries persisted.
 
-## 根因
+## Root Cause
 
-- 新上的报表接口没有做分页，一次拉取全表，单请求占用连接时间过长。
-- 连接池大小与实例数、单请求持有时长不匹配，未做压测验证。
+- A newly deployed reporting endpoint did not implement pagination, pulling the entire table in one request. Each request held a connection for too long.
+- Connection pool size did not match instance count and per-request hold time; no load testing was performed before deployment.
 
-## 改进
+## Improvements
 
-- 报表接口改为分页 + 异步导出。
-- 连接池参数按压测结果调整，并加连接超时与熔断。
-- 建立「上线前必须过压测」的 checklist。
+- Reporting endpoint refactored to use pagination + async export.
+- Connection pool parameters adjusted based on load test results; connection timeout and circuit breaker added.
+- Established a "must pass load test before go-live" checklist.
 
-## 教训
+## Lessons Learned
 
-- 资源类问题（连接、内存、线程）要在设计阶段就量化，不能等到线上爆掉再补。
+- Resource issues (connections, memory, threads) must be quantified at the design stage, not patched after production failures.

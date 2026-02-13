@@ -1,4 +1,4 @@
-"""SQLite CRUD 与建表测试。"""
+"""SQLite CRUD and schema tests."""
 
 import sqlite3
 from pathlib import Path
@@ -13,8 +13,12 @@ from openpraxis.db import (
     get_input_by_id,
     get_input_by_hash,
     save_tagger_output,
+    get_tagger_output,
     save_scene,
     get_scene,
+    get_scenes_by_input,
+    get_response_by_scene,
+    get_all_insights,
     create_response,
     update_response_performance,
     save_insight,
@@ -230,3 +234,70 @@ def test_get_insights(memory_conn: sqlite3.Connection) -> None:
     cards = get_insights(memory_conn, input_id=input_id)
     assert len(cards) == 1
     assert cards[0]["insight_title"] == "Test"
+
+
+def test_get_tagger_output(
+    memory_conn: sqlite3.Connection, sample_tagger_output: TaggerOutput
+) -> None:
+    input_id = str(uuid4())
+    create_input(memory_conn, input_id, None, "h7", "content")
+    save_tagger_output(memory_conn, input_id, sample_tagger_output)
+    loaded = get_tagger_output(memory_conn, input_id)
+    assert loaded is not None
+    assert loaded.summary == "Test summary"
+    assert loaded.input_type == InputType.REPORT
+
+
+def test_get_tagger_output_not_found(memory_conn: sqlite3.Connection) -> None:
+    assert get_tagger_output(memory_conn, "nonexistent") is None
+
+
+def test_get_scenes_by_input(memory_conn: sqlite3.Connection) -> None:
+    input_id = str(uuid4())
+    create_input(memory_conn, input_id, None, "h8", "content")
+    s1 = PracticeScene(
+        scene_id="scene-a", scene_type=SceneType.EXPLAIN,
+        role="R", task="T", constraints=[], rubric=[], expected_structure_hint=[],
+    )
+    s2 = PracticeScene(
+        scene_id="scene-b", scene_type=SceneType.CRITIQUE,
+        role="R2", task="T2", constraints=[], rubric=[], expected_structure_hint=[],
+    )
+    save_scene(memory_conn, input_id, s1)
+    save_scene(memory_conn, input_id, s2)
+    scenes = get_scenes_by_input(memory_conn, input_id)
+    assert len(scenes) == 2
+
+
+def test_get_response_by_scene(memory_conn: sqlite3.Connection) -> None:
+    input_id = str(uuid4())
+    create_input(memory_conn, input_id, None, "h9", "content")
+    scene = PracticeScene(
+        scene_id="scene-resp", scene_type=SceneType.EXPLAIN,
+        role="R", task="T", constraints=[], rubric=[], expected_structure_hint=[],
+    )
+    save_scene(memory_conn, input_id, scene)
+    create_response(memory_conn, "scene-resp", "My answer")
+    resp = get_response_by_scene(memory_conn, "scene-resp")
+    assert resp is not None
+    assert resp["answer_text"] == "My answer"
+
+
+def test_get_response_by_scene_not_found(memory_conn: sqlite3.Connection) -> None:
+    assert get_response_by_scene(memory_conn, "nonexistent") is None
+
+
+def test_get_all_insights(memory_conn: sqlite3.Connection) -> None:
+    input_id = str(uuid4())
+    create_input(memory_conn, input_id, None, "h10", "content")
+    card = InsightCard(
+        insight_title="All test",
+        insight_type=InsightType.STRUCTURING_GAP,
+        what_happened="x", why_it_matters="y",
+        upgrade_pattern="z", micro_practice="m",
+        concepts=[], skills=[], scenes=[], intensity=1,
+    )
+    save_insight(memory_conn, input_id, None, None, card)
+    all_cards = get_all_insights(memory_conn)
+    assert len(all_cards) >= 1
+    assert all_cards[0]["_input_id"] == input_id

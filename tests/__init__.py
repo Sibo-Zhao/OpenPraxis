@@ -1,1 +1,1 @@
-"""OpenPraxis 测试包。"""
+"""OpenPraxis test package."""

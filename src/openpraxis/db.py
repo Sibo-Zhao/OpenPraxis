@@ -1,4 +1,4 @@
-"""SQLite schema + CRUD。"""
+"""SQLite schema + CRUD."""
 
 import json
 import sqlite3
@@ -71,14 +71,14 @@ CREATE INDEX IF NOT EXISTS idx_graph_threads_scene_id ON graph_threads(scene_id)
 
 
 def get_connection(db_path: Path | str) -> sqlite3.Connection:
-    """返回数据库连接。"""
+    """Return database connection."""
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def ensure_schema(conn: sqlite3.Connection) -> None:
-    """建表。"""
+    """Create tables."""
     conn.executescript(SCHEMA_SQL)
     conn.commit()
 
@@ -91,7 +91,7 @@ def create_input(
     raw_text: str,
     type_hint: str | None = None,
 ) -> None:
-    """写入 inputs 表。"""
+    """Insert into inputs table."""
     conn.execute(
         "INSERT INTO inputs (id, file_path, file_hash, raw_text, type_hint) VALUES (?, ?, ?, ?, ?)",
         (input_id, file_path, file_hash, raw_text, type_hint),
@@ -100,13 +100,13 @@ def create_input(
 
 
 def get_input_by_id(conn: sqlite3.Connection, input_id: str) -> sqlite3.Row | None:
-    """按 id 查 inputs。"""
+    """Get inputs by id."""
     cur = conn.execute("SELECT * FROM inputs WHERE id = ?", (input_id,))
     return cur.fetchone()
 
 
 def get_input_by_hash(conn: sqlite3.Connection, file_hash: str) -> sqlite3.Row | None:
-    """按 file_hash 查 inputs（去重用）。"""
+    """Get inputs by file_hash (for dedup)."""
     cur = conn.execute("SELECT * FROM inputs WHERE file_hash = ?", (file_hash,))
     return cur.fetchone()
 
@@ -114,7 +114,7 @@ def get_input_by_hash(conn: sqlite3.Connection, file_hash: str) -> sqlite3.Row |
 def save_tagger_output(
     conn: sqlite3.Connection, input_id: str, output: TaggerOutput
 ) -> None:
-    """写入 tagger_outputs。"""
+    """Insert into tagger_outputs."""
     conn.execute(
         "INSERT OR REPLACE INTO tagger_outputs (input_id, output_json) VALUES (?, ?)",
         (input_id, output.model_dump_json()),
@@ -127,7 +127,7 @@ def save_tagger_output(
 
 
 def save_scene(conn: sqlite3.Connection, input_id: str, scene: PracticeScene) -> None:
-    """写入 scenes。"""
+    """Insert into scenes."""
     conn.execute(
         "INSERT INTO scenes (scene_id, input_id, scene_json) VALUES (?, ?, ?)",
         (scene.scene_id, input_id, scene.model_dump_json()),
@@ -136,7 +136,7 @@ def save_scene(conn: sqlite3.Connection, input_id: str, scene: PracticeScene) ->
 
 
 def get_scene(conn: sqlite3.Connection, scene_id: str) -> PracticeScene | None:
-    """按 scene_id 查场景。"""
+    """Get scene by scene_id."""
     cur = conn.execute("SELECT scene_json FROM scenes WHERE scene_id = ?", (scene_id,))
     row = cur.fetchone()
     if row is None:
@@ -147,7 +147,7 @@ def get_scene(conn: sqlite3.Connection, scene_id: str) -> PracticeScene | None:
 def create_response(
     conn: sqlite3.Connection, scene_id: str, answer_text: str
 ) -> str:
-    """写入 responses，返回 response id。"""
+    """Insert into responses, return response id."""
     resp_id = str(uuid4())
     conn.execute(
         "INSERT INTO responses (id, scene_id, answer_text) VALUES (?, ?, ?)",
@@ -160,7 +160,7 @@ def create_response(
 def update_response_performance(
     conn: sqlite3.Connection, response_id: str, performance: PracticePerformance
 ) -> None:
-    """更新 response 的 perf_json。"""
+    """Update response perf_json."""
     conn.execute(
         "UPDATE responses SET perf_json = ? WHERE id = ?",
         (performance.model_dump_json(), response_id),
@@ -175,7 +175,7 @@ def save_insight(
     response_id: str | None,
     card: InsightCard,
 ) -> None:
-    """写入 insights。"""
+    """Insert into insights."""
     card_id = str(uuid4())
     conn.execute(
         """INSERT INTO insights (id, input_id, scene_id, response_id, card_json, insight_type, intensity)
@@ -200,7 +200,7 @@ def upsert_graph_thread(
     scene_id: str | None = None,
     status: str = "running",
 ) -> None:
-    """插入或更新 graph_threads。"""
+    """Insert or update graph_threads."""
     conn.execute(
         """INSERT INTO graph_threads (thread_id, input_id, scene_id, status)
            VALUES (?, ?, ?, ?)
@@ -216,7 +216,7 @@ def upsert_graph_thread(
 def get_thread_by_scene_id(
     conn: sqlite3.Connection, scene_id: str
 ) -> sqlite3.Row | None:
-    """按 scene_id 查 graph_threads。"""
+    """Get graph_threads by scene_id."""
     cur = conn.execute(
         "SELECT * FROM graph_threads WHERE scene_id = ?", (scene_id,)
     )
@@ -226,7 +226,7 @@ def get_thread_by_scene_id(
 def get_thread_by_input_id(
     conn: sqlite3.Connection, input_id: str
 ) -> sqlite3.Row | None:
-    """按 input_id 查 graph_threads。"""
+    """Get graph_threads by input_id."""
     cur = conn.execute(
         "SELECT * FROM graph_threads WHERE input_id = ?", (input_id,)
     )
@@ -238,7 +238,7 @@ def list_inputs(
     input_type: str | None = None,
     limit: int = 50,
 ) -> list[sqlite3.Row]:
-    """列出 inputs，可选按类型筛选。"""
+    """List inputs, optionally filter by type."""
     if input_type:
         cur = conn.execute(
             "SELECT * FROM inputs WHERE input_type = ? ORDER BY created_at DESC LIMIT ?",
@@ -252,13 +252,55 @@ def list_inputs(
     return list(cur.fetchall())
 
 
+def get_tagger_output(conn: sqlite3.Connection, input_id: str) -> TaggerOutput | None:
+    """Get parsed TaggerOutput for an input."""
+    cur = conn.execute(
+        "SELECT output_json FROM tagger_outputs WHERE input_id = ?", (input_id,)
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+    return TaggerOutput.model_validate_json(row["output_json"])
+
+
+def get_scenes_by_input(conn: sqlite3.Connection, input_id: str) -> list[PracticeScene]:
+    """Get all scenes for an input."""
+    cur = conn.execute(
+        "SELECT scene_json FROM scenes WHERE input_id = ? ORDER BY created_at", (input_id,)
+    )
+    return [PracticeScene.model_validate_json(r["scene_json"]) for r in cur.fetchall()]
+
+
+def get_response_by_scene(conn: sqlite3.Connection, scene_id: str) -> sqlite3.Row | None:
+    """Get the latest response for a scene."""
+    cur = conn.execute(
+        "SELECT * FROM responses WHERE scene_id = ? ORDER BY created_at DESC LIMIT 1",
+        (scene_id,),
+    )
+    return cur.fetchone()
+
+
+def get_all_insights(conn: sqlite3.Connection) -> list[dict]:
+    """Get all insight cards with input_id info."""
+    cur = conn.execute(
+        "SELECT input_id, card_json FROM insights ORDER BY created_at DESC"
+    )
+    rows = cur.fetchall()
+    result = []
+    for r in rows:
+        card = json.loads(r["card_json"])
+        card["_input_id"] = r["input_id"]
+        result.append(card)
+    return result
+
+
 def get_insights(
     conn: sqlite3.Connection,
     input_id: str | None = None,
     insight_type: str | None = None,
     min_intensity: int | None = None,
 ) -> list[dict]:
-    """查询洞察卡片。"""
+    """Query insight cards."""
     sql = "SELECT card_json FROM insights WHERE 1=1"
     params: list = []
     if input_id:

@@ -1,16 +1,16 @@
-# RAG 系统技术报告
+# RAG System Technical Report
 
-## 概述
+## Overview
 
-检索增强生成（RAG）通过结合检索与生成，提升大模型在领域知识上的表现。典型流水线包括：文档切块、向量化、检索、上下文拼接与生成。
+Retrieval-Augmented Generation (RAG) improves large language model performance on domain knowledge by combining retrieval with generation. A typical pipeline includes: document chunking, vectorization, retrieval, context assembly, and generation.
 
-## 失败模式
+## Failure Modes
 
-- **检索缺失**：相关片段未被召回，导致幻觉或遗漏。
-- **上下文过长**：超出窗口导致截断或噪声。
-- **排序偏差**：最相关片段未排在前列，影响生成质量。
+- **Retrieval miss**: Relevant chunks are not recalled, leading to hallucination or omission.
+- **Context overflow**: Exceeding the context window causes truncation or noise.
+- **Ranking bias**: The most relevant chunks are not ranked at the top, degrading generation quality.
 
-## 实践建议
+## Practical Recommendations
 
-- 明确检索指标（Recall@K、MRR）与业务指标（满意度、转化）的对应关系。
-- 对敏感场景做人工抽样与 A/B 测试。
+- Clearly map retrieval metrics (Recall@K, MRR) to business metrics (satisfaction, conversion).
+- For sensitive scenarios, conduct manual sampling and A/B testing.

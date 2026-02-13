@@ -1,4 +1,4 @@
-"""配置加载（TOML + 环境变量）。"""
+"""Config loading (TOML + env vars)."""
 
 import os
 from pathlib import Path
@@ -37,7 +37,7 @@ def get_settings() -> Settings:
     storage_cfg = config.get("storage", {})
     display_cfg = config.get("display", {})
 
-    api_key = llm_cfg.get("api_key") or os.environ.get("OPENAI_API_KEY", "")
+    api_key = os.environ.get("OPENAI_API_KEY") or llm_cfg.get("api_key", "")
     data_dir = Path(
         storage_cfg.get("data_dir", str(_DEFAULT_DATA_DIR))
     ).expanduser()

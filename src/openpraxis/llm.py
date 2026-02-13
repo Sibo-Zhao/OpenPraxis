@@ -1,4 +1,4 @@
-"""OpenAI 客户端封装。"""
+"""OpenAI client wrapper."""
 
 from pydantic import BaseModel
 
@@ -24,7 +24,7 @@ def call_structured(
     model: str | None = None,
     temperature: float = 0.7,
 ) -> BaseModel:
-    """调用 GPT-4o，使用 structured output 返回解析后的 Pydantic 模型。"""
+    """Call GPT-4o with structured output, return parsed Pydantic model."""
     settings = get_settings()
     client = get_client()
 
@@ -43,5 +43,5 @@ def call_structured(
         refusal = getattr(
             completion.choices[0].message, "refusal", None
         ) or "(unknown)"
-        raise RuntimeError(f"LLM 未返回有效输出。Refusal: {refusal}")
+        raise RuntimeError(f"LLM did not return valid output. Refusal: {refusal}")
     return parsed

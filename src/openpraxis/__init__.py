@@ -1,3 +1,3 @@
-"""OpenPraxis - 将笔记转化为结构化实践与认知洞察。"""
+"""OpenPraxis - Turn notes into structured practice and cognitive insights."""
 
 __version__ = "0.1.0"

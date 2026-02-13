@@ -1,4 +1,4 @@
-"""Practice 生成 + 人工回答 + 评估节点。"""
+"""Practice generation + human answer + evaluation nodes."""
 
 from uuid import uuid4
 
@@ -17,15 +17,15 @@ from openpraxis.prompts import (
 
 
 def practice_generator_node(state: dict) -> dict:
-    """生成练习场景。"""
+    """Generate practice scene."""
     tagger_output = state["tagger_output"]
     raw_text = state["raw_text"]
     seed = tagger_output.practice_seed
     user_content = (
-        f"摘要: {tagger_output.summary}\n\n"
-        f"原始内容:\n{raw_text}\n\n"
-        f"期望场景类型: {seed.preferred_scene.value}\n"
-        f"技能: {seed.skills}\n概念: {seed.concepts}\n约束: {seed.constraints}"
+        f"Summary: {tagger_output.summary}\n\n"
+        f"Raw content:\n{raw_text}\n\n"
+        f"Preferred scene type: {seed.preferred_scene.value}\n"
+        f"Skills: {seed.skills}\nConcepts: {seed.concepts}\nConstraints: {seed.constraints}"
     )
     llm_scene: PracticeSceneLLM = call_structured(
         get_practice_generator_system_prompt(),
@@ -45,7 +45,7 @@ def practice_generator_node(state: dict) -> dict:
 
 
 def human_answer_node(state: dict) -> dict:
-    """interrupt() 暂停图，等待用户回答后恢复。"""
+    """interrupt() pauses graph until user answers, then resume."""
     scene = state["scene"]
     payload = {
         "scene_id": scene.scene_id,
@@ -59,15 +59,15 @@ def human_answer_node(state: dict) -> dict:
 
 
 def practice_evaluator_node(state: dict) -> dict:
-    """对用户回答评分。"""
+    """Score user answer."""
     scene = state["scene"]
     user_answer = state["user_answer"]
     raw_text = state.get("raw_text", "")
     user_content = (
-        f"场景任务: {scene.task}\n约束: {scene.constraints}\n"
+        f"Scene task: {scene.task}\nConstraints: {scene.constraints}\n"
         f"Rubric: {scene.rubric}\n\n"
-        f"用户回答:\n{user_answer}\n\n"
-        f"原始学习内容（参考）:\n{raw_text}"
+        f"User answer:\n{user_answer}\n\n"
+        f"Raw learning content (reference):\n{raw_text}"
     )
     performance: PracticePerformance = call_structured(
         get_practice_evaluator_system_prompt(),

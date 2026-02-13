@@ -1,24 +1,25 @@
 # OpenPraxis
 
-AI Bandwidth Amplifier — 将笔记转化为结构化实践与认知洞察。
+AI Bandwidth Amplifier - turn notes into structured practice and actionable learning insights.
 
-## 要求
+## Requirements
 
 - Python 3.11+
 - OpenAI API Key
 
-## 安装
+## Installation
 
 ```bash
 pip install -e .
-# 或开发依赖：pip install -e ".[dev]"
+# or install with dev dependencies: pip install -e ".[dev]"
 ```
 
-## 配置
+## Configuration
 
-复制 `config.example.toml` 到 `~/.openpraxis/config.toml`，填写 `api_key`。也可通过环境变量 `OPENAI_API_KEY` 设置。
+Copy `config.example.toml` to `~/.openpraxis/config.toml` and set `api_key`.
+You can also configure it with the `OPENAI_API_KEY` environment variable.
 
-## 使用
+## Usage
 
 ```bash
 praxis add <file> [--type report|interview|reflection|idea]
@@ -30,13 +31,13 @@ praxis export [--format md|json] [--output <path>]
 praxis list [--type report|interview|reflection|idea] [--limit N]
 ```
 
-## 开发
+## Development
 
 ```bash
 pytest
 ruff check src tests
 ```
 
-## 许可
+## License
 
-见项目仓库。
+See the project repository.
