@@ -5,7 +5,7 @@ AI Bandwidth Amplifier - turn notes into structured practice and actionable lear
 ## Requirements
 
 - Python 3.11+
-- OpenAI API Key
+- LLM API Key (OpenAI / Doubao / Kimi / DeepSeek)
 
 ## Installation
 
@@ -17,7 +17,18 @@ pip install -e .
 ## Configuration
 
 Copy `config.example.toml` to `~/.openpraxis/config.toml` and set `api_key`.
-You can also configure it with the `OPENAI_API_KEY` environment variable.
+You can switch providers via `llm.provider`:
+
+- `openai` (default): native structured output parse
+- `doubao`: native structured output parse
+- `kimi` / `deepseek`: JSON mode + JSON string -> Pydantic validation
+
+API key env vars (higher priority than `llm.api_key`):
+
+- `OPENAI_API_KEY` for `openai`
+- `ARK_API_KEY` for `doubao`
+- `MOONSHOT_API_KEY` for `kimi`
+- `DEEPSEEK_API_KEY` for `deepseek`
 
 ## Usage
 

@@ -1,8 +1,14 @@
 # Copy to ~/.openpraxis/config.toml and fill in your values.
-# OPENAI_API_KEY can also be set via environment variable (takes precedence).
+# Provider API key env vars take precedence over llm.api_key:
+# - openai: OPENAI_API_KEY
+# - doubao: ARK_API_KEY
+# - kimi: MOONSHOT_API_KEY
+# - deepseek: DEEPSEEK_API_KEY
 
 [llm]
+provider = "openai" # openai | doubao | kimi | deepseek
 api_key = "sk-..."
+base_url = ""       # leave empty to use provider default
 model = "gpt-4o"
 temperature = 0.7
 
