@@ -5,10 +5,12 @@ from unittest.mock import patch
 
 from openpraxis.models import (
     CapabilityMap,
+    CoachReply,
     InsightCard,
     InsightList,
     InsightType,
     InputType,
+    PracticeMessage,
     PracticePerformance,
     PracticeScene,
     PracticeSceneLLM,
@@ -96,15 +98,40 @@ def mock_insight_list() -> InsightList:
     )
 
 
+# Track coach call count to simulate multi-turn behaviour
+_coach_call_count = 0
+
+
+@pytest.fixture
+def mock_coach_reply_sequence():
+    """Returns a list of CoachReply objects for successive coach turns."""
+    return [
+        CoachReply(
+            message="You're a Tech Lead reviewing a RAG pipeline. Can you walk me through the main failure modes?",
+            ready_for_evaluation=False,
+        ),
+        CoachReply(
+            message="Good start. What about retrieval miss specifically — how would you detect and mitigate it?",
+            ready_for_evaluation=False,
+        ),
+        CoachReply(
+            message="Solid answer. I think we've covered enough ground here.",
+            ready_for_evaluation=True,
+        ),
+    ]
+
+
 @pytest.fixture
 def mock_llm(
     mock_tagger_output: TaggerOutput,
     mock_scene: PracticeScene,
     mock_performance: PracticePerformance,
     mock_insight_list: InsightList,
+    mock_coach_reply_sequence: list[CoachReply],
 ):
-    """Patch call_structured to return the corresponding fixture by response_model."""
-    from openpraxis.models import PracticeSceneLLM
+    """Patch call_structured and call_chat_structured to return fixtures."""
+    global _coach_call_count
+    _coach_call_count = 0
 
     def fake_call(system_prompt, user_content, response_model, **kwargs):
         if response_model == TaggerOutput:
@@ -125,8 +152,16 @@ def mock_llm(
             return mock_insight_list
         raise ValueError(f"Unknown response_model: {response_model}")
 
-    # Patch references in node modules; otherwise nodes are bound to real call_structured
+    def fake_chat_call(messages, response_model, **kwargs):
+        global _coach_call_count
+        if response_model == CoachReply:
+            idx = min(_coach_call_count, len(mock_coach_reply_sequence) - 1)
+            _coach_call_count += 1
+            return mock_coach_reply_sequence[idx]
+        raise ValueError(f"Unknown response_model: {response_model}")
+
     with patch("openpraxis.nodes.tagger.call_structured", side_effect=fake_call), \
          patch("openpraxis.nodes.practice.call_structured", side_effect=fake_call), \
+         patch("openpraxis.nodes.practice.call_chat_structured", side_effect=fake_chat_call), \
          patch("openpraxis.nodes.insight.call_structured", side_effect=fake_call):
         yield

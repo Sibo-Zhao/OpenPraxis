@@ -112,6 +112,23 @@ class PracticeScene(BaseModel):
     expected_structure_hint: list[str]
 
 
+class PracticeMessage(BaseModel):
+    """Single message in a multi-turn practice conversation."""
+
+    role: str  # "coach" or "user"
+    content: str
+
+
+class CoachReply(BaseModel):
+    """Structured output from the coach LLM each turn."""
+
+    message: str
+    ready_for_evaluation: bool = Field(
+        description="True when the coach decides the conversation has enough "
+        "material to hand off to the evaluator.",
+    )
+
+
 class PerformanceSignal(BaseModel):
     clarity: int = Field(ge=0, le=10)
     reasoning_depth: int = Field(ge=0, le=10)

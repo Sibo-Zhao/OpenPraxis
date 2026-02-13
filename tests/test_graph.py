@@ -4,10 +4,11 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END
 from langgraph.types import Command
 
-from openpraxis.graph import build_graph, route_after_tagger, PraxisState
+from openpraxis.graph import build_graph, route_after_tagger, route_after_coach, PraxisState
 from openpraxis.models import (
     CapabilityMap,
     InputType,
+    PracticeMessage,
     PracticeSeed,
     RoutingPolicy,
     SceneType,
@@ -27,6 +28,22 @@ def test_route_after_tagger_should_practice() -> None:
 def test_route_after_tagger_no_practice() -> None:
     state: PraxisState = {"should_practice": False}
     assert route_after_tagger(state) == END
+
+
+def test_route_after_coach_ready() -> None:
+    state: PraxisState = {"coach_ready": True, "practice_round": 1}
+    assert route_after_coach(state) == "practice_evaluator"
+
+
+def test_route_after_coach_max_rounds() -> None:
+    from openpraxis.nodes.practice import MAX_PRACTICE_ROUNDS
+    state: PraxisState = {"coach_ready": False, "practice_round": MAX_PRACTICE_ROUNDS}
+    assert route_after_coach(state) == "practice_evaluator"
+
+
+def test_route_after_coach_continue() -> None:
+    state: PraxisState = {"coach_ready": False, "practice_round": 1}
+    assert route_after_coach(state) == "human_turn"
 
 
 def test_build_graph() -> None:
@@ -51,14 +68,12 @@ def test_graph_no_practice_path() -> None:
     result = graph.invoke(initial, config=config)
 
     assert "tagger_output" in result
-    # mock_tagger_output has routing_policy=RECOMMEND, so should_practice=True
-    # But the test verifies graph runs without error
     assert result["tagger_output"] is not None
 
 
 @pytest.mark.usefixtures("mock_llm")
-def test_graph_practice_path_interrupt() -> None:
-    """When should_practice=True, graph pauses at human_answer (interrupt)."""
+def test_graph_practice_path_first_interrupt() -> None:
+    """When should_practice=True, graph pauses at human_turn (first interrupt)."""
     builder = build_graph()
     graph = builder.compile(checkpointer=MemorySaver())
 
@@ -70,20 +85,25 @@ def test_graph_practice_path_interrupt() -> None:
     config = {"configurable": {"thread_id": "thread-practice"}}
     result = graph.invoke(initial, config=config)
 
-    # Graph should have tagger_output and scene (reached interrupt)
+    # Graph should have tagger_output, scene, and first coach message
     assert "tagger_output" in result
     assert "scene" in result
     scene = result["scene"]
     assert scene.scene_id is not None
     assert scene.role == "Tech Lead"
 
-    # user_answer should NOT be set (interrupted before evaluator)
+    # Should have one coach message (first turn)
+    assert "practice_messages" in result
+    assert len(result["practice_messages"]) == 1
+    assert result["practice_messages"][0].role == "coach"
+
+    # Should NOT have performance yet (interrupted before evaluator)
     assert "performance" not in result
 
 
 @pytest.mark.usefixtures("mock_llm")
-def test_graph_full_resume() -> None:
-    """Test full graph: add -> interrupt -> resume with answer -> evaluator -> insight."""
+def test_graph_multi_turn_full_resume() -> None:
+    """Test full multi-turn flow: coach asks -> user replies -> coach follows up -> ... -> evaluator -> insight."""
     builder = build_graph()
     graph = builder.compile(checkpointer=MemorySaver())
 
@@ -92,25 +112,44 @@ def test_graph_full_resume() -> None:
         "raw_text": "A technical report on RAG.",
         "type_hint": "report",
     }
-    config = {"configurable": {"thread_id": "thread-full"}}
+    config = {"configurable": {"thread_id": "thread-multi-turn"}}
 
-    # Phase 1: invoke until interrupt
+    # Phase 1: invoke until first interrupt (coach asks first question)
     result1 = graph.invoke(initial, config=config)
     assert "scene" in result1
+    assert len(result1["practice_messages"]) == 1
+    assert result1["practice_messages"][0].role == "coach"
     assert "performance" not in result1
 
-    # Phase 2: resume with answer
+    # Phase 2: user replies -> coach follows up -> second interrupt
     result2 = graph.invoke(
         Command(resume="RAG failure modes include retrieval miss and context overflow."),
         config=config,
     )
+    # Should now have: coach1, user1, coach2 messages and be at second interrupt
+    assert len(result2["practice_messages"]) == 3
+    assert result2["practice_messages"][0].role == "coach"
+    assert result2["practice_messages"][1].role == "user"
+    assert result2["practice_messages"][2].role == "coach"
+    assert "performance" not in result2
 
-    # After resume, should have performance and insights
-    assert "performance" in result2
-    assert result2["performance"].performance_signal.clarity == 7
-    assert "insights" in result2
-    assert len(result2["insights"]) >= 1
-    assert result2["insights"][0].insight_title == "Structured expression gap"
+    # Phase 3: user replies again -> coach says ready -> evaluator -> insight
+    result3 = graph.invoke(
+        Command(resume="For retrieval miss, I would add monitoring on recall metrics and set alerts."),
+        config=config,
+    )
+    # Should have full conversation: coach1, user1, coach2, user2, coach3 (wrap-up)
+    assert len(result3["practice_messages"]) >= 4
+    # Should have performance and insights now
+    assert "performance" in result3
+    assert result3["performance"].performance_signal.clarity == 7
+    assert "insights" in result3
+    assert len(result3["insights"]) >= 1
+    assert result3["insights"][0].insight_title == "Structured expression gap"
+    # user_answer should be the formatted conversation
+    assert "user_answer" in result3
+    assert "[Coach]:" in result3["user_answer"]
+    assert "[User]:" in result3["user_answer"]
 
 
 @pytest.mark.usefixtures("mock_llm")
@@ -144,5 +183,8 @@ def test_graph_forced_practice_with_cached_tagger() -> None:
     config = {"configurable": {"thread_id": "thread-forced"}}
     result = graph.invoke(initial, config=config)
 
-    # Should reach practice_generator and interrupt at human_answer
+    # Should reach practice_generator, coach_turn, and interrupt at human_turn
     assert "scene" in result
+    assert "practice_messages" in result
+    assert len(result["practice_messages"]) == 1
+    assert result["practice_messages"][0].role == "coach"

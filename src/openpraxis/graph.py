@@ -1,13 +1,15 @@
 """LangGraph StateGraph definition."""
 
+import operator
 import sqlite3
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 
 from openpraxis.models import (
     InsightCard,
+    PracticeMessage,
     PracticePerformance,
     PracticeScene,
     TaggerOutput,
@@ -20,6 +22,11 @@ class PraxisState(TypedDict, total=False):
     type_hint: str | None
     tagger_output: TaggerOutput
     scene: PracticeScene
+    # Multi-turn practice conversation
+    practice_messages: Annotated[list[PracticeMessage], operator.add]
+    practice_round: int
+    coach_ready: bool
+    # Legacy / derived field (populated by evaluator from practice_messages)
     user_answer: str
     performance: PracticePerformance
     insights: list[InsightCard]
@@ -33,10 +40,22 @@ def route_after_tagger(state: PraxisState) -> str:
     return END
 
 
+def route_after_coach(state: PraxisState) -> str:
+    """Conditional edge: continue conversation or move to evaluator."""
+    from openpraxis.nodes.practice import MAX_PRACTICE_ROUNDS
+
+    if state.get("coach_ready"):
+        return "practice_evaluator"
+    if state.get("practice_round", 0) >= MAX_PRACTICE_ROUNDS:
+        return "practice_evaluator"
+    return "human_turn"
+
+
 def build_graph():
     """Build StateGraph (no checkpointer)."""
     from openpraxis.nodes.practice import (
-        human_answer_node,
+        coach_turn_node,
+        human_turn_node,
         practice_evaluator_node,
         practice_generator_node,
     )
@@ -46,7 +65,8 @@ def build_graph():
     builder = StateGraph(PraxisState)
     builder.add_node("tagger", tagger_node)
     builder.add_node("practice_generator", practice_generator_node)
-    builder.add_node("human_answer", human_answer_node)
+    builder.add_node("coach_turn", coach_turn_node)
+    builder.add_node("human_turn", human_turn_node)
     builder.add_node("practice_evaluator", practice_evaluator_node)
     builder.add_node("insight_generator", insight_generator_node)
 
@@ -56,8 +76,16 @@ def build_graph():
         route_after_tagger,
         {"practice_generator": "practice_generator", END: END},
     )
-    builder.add_edge("practice_generator", "human_answer")
-    builder.add_edge("human_answer", "practice_evaluator")
+    builder.add_edge("practice_generator", "coach_turn")
+    builder.add_conditional_edges(
+        "coach_turn",
+        route_after_coach,
+        {
+            "human_turn": "human_turn",
+            "practice_evaluator": "practice_evaluator",
+        },
+    )
+    builder.add_edge("human_turn", "coach_turn")
     builder.add_edge("practice_evaluator", "insight_generator")
     builder.add_edge("insight_generator", END)
 

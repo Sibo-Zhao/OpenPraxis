@@ -4,10 +4,13 @@ import pytest
 
 from openpraxis.nodes.tagger import tagger_node
 from openpraxis.nodes.practice import (
-    practice_generator_node,
+    coach_turn_node,
     practice_evaluator_node,
+    practice_generator_node,
+    _format_conversation,
 )
 from openpraxis.nodes.insight import insight_generator_node
+from openpraxis.models import PracticeMessage
 
 
 @pytest.mark.usefixtures("mock_llm")
@@ -35,7 +38,38 @@ def test_practice_generator_node(mock_tagger_output) -> None:
 
 
 @pytest.mark.usefixtures("mock_llm")
-def test_practice_evaluator_node() -> None:
+def test_coach_turn_node_first_turn(mock_scene) -> None:
+    """First coach turn: no prior messages."""
+    state = {
+        "scene": mock_scene,
+        "practice_messages": [],
+    }
+    out = coach_turn_node(state)
+    assert "practice_messages" in out
+    assert len(out["practice_messages"]) == 1
+    assert out["practice_messages"][0].role == "coach"
+    assert out["coach_ready"] is False
+
+
+@pytest.mark.usefixtures("mock_llm")
+def test_coach_turn_node_with_history(mock_scene) -> None:
+    """Coach turn after user reply: should get follow-up question."""
+    state = {
+        "scene": mock_scene,
+        "practice_messages": [
+            PracticeMessage(role="coach", content="Walk me through failure modes?"),
+            PracticeMessage(role="user", content="Retrieval miss and context overflow."),
+        ],
+    }
+    out = coach_turn_node(state)
+    assert len(out["practice_messages"]) == 1
+    assert out["practice_messages"][0].role == "coach"
+    # Second call → still not ready
+    assert out["coach_ready"] is False
+
+
+@pytest.mark.usefixtures("mock_llm")
+def test_practice_evaluator_node_with_messages() -> None:
     from openpraxis.models import PracticeScene, SceneType
 
     state = {
@@ -48,12 +82,33 @@ def test_practice_evaluator_node() -> None:
             rubric=[],
             expected_structure_hint=[],
         ),
-        "user_answer": "My answer content",
+        "practice_messages": [
+            PracticeMessage(role="coach", content="Explain failure modes."),
+            PracticeMessage(role="user", content="Retrieval miss is the main one."),
+        ],
         "raw_text": "Raw",
     }
     out = practice_evaluator_node(state)
     assert "performance" in out
     assert out["performance"].performance_signal.clarity == 7
+    # user_answer should be the formatted conversation
+    assert "user_answer" in out
+    assert "[Coach]:" in out["user_answer"]
+    assert "[User]:" in out["user_answer"]
+
+
+def test_format_conversation() -> None:
+    msgs = [
+        PracticeMessage(role="coach", content="Question?"),
+        PracticeMessage(role="user", content="Answer."),
+        PracticeMessage(role="coach", content="Follow-up?"),
+        PracticeMessage(role="user", content="More detail."),
+    ]
+    result = _format_conversation(msgs)
+    assert "[Coach]: Question?" in result
+    assert "[User]: Answer." in result
+    assert "[Coach]: Follow-up?" in result
+    assert "[User]: More detail." in result
 
 
 @pytest.mark.usefixtures("mock_llm")
@@ -101,7 +156,7 @@ def test_insight_generator_node() -> None:
             rubric=[],
             expected_structure_hint=[],
         ),
-        "user_answer": "Answer",
+        "user_answer": "[Coach]: Q?\n\n[User]: A.",
         "performance": PracticePerformance(
             performance_signal=PerformanceSignal(
                 clarity=6,

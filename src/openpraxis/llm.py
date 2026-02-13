@@ -45,3 +45,29 @@ def call_structured(
         ) or "(unknown)"
         raise RuntimeError(f"LLM did not return valid output. Refusal: {refusal}")
     return parsed
+
+
+def call_chat_structured(
+    messages: list[dict],
+    response_model: type[BaseModel],
+    model: str | None = None,
+    temperature: float = 0.7,
+) -> BaseModel:
+    """Call LLM with a full message list and structured output."""
+    settings = get_settings()
+    client = get_client()
+
+    completion = client.beta.chat.completions.parse(
+        model=model or settings.model_name,
+        messages=messages,
+        response_format=response_model,
+        temperature=temperature,
+    )
+
+    parsed = completion.choices[0].message.parsed
+    if parsed is None:
+        refusal = getattr(
+            completion.choices[0].message, "refusal", None
+        ) or "(unknown)"
+        raise RuntimeError(f"LLM did not return valid output. Refusal: {refusal}")
+    return parsed
