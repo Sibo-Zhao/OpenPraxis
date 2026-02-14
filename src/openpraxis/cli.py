@@ -14,6 +14,12 @@ from openpraxis.config import (
     get_settings,
     set_runtime_llm_overrides,
     SUPPORTED_LLM_PROVIDERS,
+    get_provider_default_base_url,
+    get_provider_default_model,
+    load_config_dict,
+    persist_llm_config,
+    get_llm_api_key_source,
+    mask_secret,
 )
 from openpraxis.db import (
     ensure_schema,
@@ -40,11 +46,14 @@ from openpraxis.display import show_scene, show_tagger_summary, show_insight_car
 from openpraxis.graph import get_compiled_graph, PraxisState
 
 app = typer.Typer(name="praxis", help="OpenPraxis - Turn notes into structured practice and cognitive insights")
+llm_app = typer.Typer(help="LLM configuration commands")
+app.add_typer(llm_app, name="llm")
 console = Console()
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def global_options(
+    ctx: typer.Context,
     provider: str | None = typer.Option(
         None,
         "--provider",
@@ -65,11 +74,6 @@ def global_options(
         "--model",
         help="Override LLM model for this command.",
     ),
-    temperature: float | None = typer.Option(
-        None,
-        "--temperature",
-        help="Override LLM temperature for this command.",
-    ),
 ) -> None:
     """Global runtime LLM overrides."""
     try:
@@ -78,10 +82,102 @@ def global_options(
             api_key=api_key,
             base_url=base_url,
             model=model,
-            temperature=temperature,
         )
     except ValueError as exc:
         raise typer.BadParameter(str(exc), param_hint="--provider") from exc
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+
+
+@llm_app.command("setup")
+def llm_setup() -> None:
+    """Interactive setup for provider/model/api key."""
+    config = load_config_dict()
+    llm_cfg = dict(config.get("llm", {}))
+
+    current_provider = str(llm_cfg.get("provider", "openai")).strip().lower()
+    if current_provider not in SUPPORTED_LLM_PROVIDERS:
+        current_provider = "openai"
+
+    console.print("[bold]LLM Setup[/bold]")
+
+    while True:
+        provider = typer.prompt(
+            f"Provider ({'|'.join(SUPPORTED_LLM_PROVIDERS)})",
+            default=current_provider,
+        ).strip().lower()
+        if provider in SUPPORTED_LLM_PROVIDERS:
+            break
+        console.print(f"[red]Invalid provider: {provider}. Try again.[/red]")
+
+    provider_default_model = get_provider_default_model(provider)
+    previous_model = str(llm_cfg.get("model", "")).strip()
+    model_default = previous_model if (provider == current_provider and previous_model) else provider_default_model
+    model = typer.prompt("Model", default=model_default).strip() or provider_default_model
+
+    existing_api_key = str(llm_cfg.get("api_key", "")).strip()
+    entered_api_key = typer.prompt(
+        "API key (leave empty to keep existing)",
+        default="",
+        show_default=False,
+        hide_input=True,
+    ).strip()
+    api_key = entered_api_key or existing_api_key
+    if not api_key:
+        console.print("[red]API key is required (no existing saved key found).[/red]")
+        raise typer.Exit(1)
+
+    provider_default_base_url = get_provider_default_base_url(provider) or ""
+    previous_base_url = str(llm_cfg.get("base_url", "")).strip() if provider == current_provider else ""
+    base_url_input = typer.prompt(
+        (
+            "Base URL "
+            f"(leave empty for provider default: {provider_default_base_url or '(none)'}; "
+            f"current: {previous_base_url or '(none)'})"
+        ),
+        default="",
+        show_default=False,
+    ).strip()
+    base_url = base_url_input or provider_default_base_url
+
+    temperature = float(llm_cfg.get("temperature", 0.7))
+
+    config_path = persist_llm_config(
+        provider=provider,
+        api_key=api_key,
+        base_url=base_url,
+        model=model,
+        temperature=temperature,
+    )
+
+    console.print(f"[green]Saved LLM config:[/green] {config_path}")
+    table = Table(box=box.SIMPLE, show_header=False)
+    table.add_column("key", style="cyan")
+    table.add_column("value", style="white")
+    table.add_row("provider", provider)
+    table.add_row("model", model)
+    table.add_row("base_url", base_url or "(none)")
+    table.add_row("api_key", mask_secret(api_key))
+    console.print(table)
+
+
+@llm_app.command("show")
+def llm_show() -> None:
+    """Show active LLM config and API key source."""
+    settings = get_settings()
+    key_source = get_llm_api_key_source(settings.llm_provider)
+
+    table = Table(title="LLM Config", box=box.SIMPLE_HEAD)
+    table.add_column("Key", style="cyan", no_wrap=True)
+    table.add_column("Value", style="white")
+    table.add_row("provider", settings.llm_provider)
+    table.add_row("model", settings.model_name)
+    table.add_row("base_url", settings.llm_base_url or "(none)")
+    table.add_row("temperature", str(settings.temperature))
+    table.add_row("api_key", mask_secret(settings.llm_api_key))
+    table.add_row("api_key_source", key_source)
+    console.print(table)
 
 
 def _hash_file(path: Path) -> str:

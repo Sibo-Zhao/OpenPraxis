@@ -1,4 +1,5 @@
 # Copy to ~/.openpraxis/config.toml and fill in your values.
+# You can also run: praxis llm setup
 # Provider API key env vars take precedence over llm.api_key:
 # - openai: OPENAI_API_KEY
 # - doubao: ARK_API_KEY

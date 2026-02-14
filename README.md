@@ -16,8 +16,15 @@ pip install -e .
 
 ## Configuration
 
-Copy `config.example.toml` to `~/.openpraxis/config.toml` and set `api_key`.
-You can switch providers via `llm.provider`:
+Recommended first-time setup:
+
+```bash
+praxis llm setup
+praxis llm show
+```
+
+This saves your default provider/model/api_key into `~/.openpraxis/config.toml`.
+You can also edit `config.example.toml` manually and copy it to `~/.openpraxis/config.toml`.
 
 - `openai` (default): native structured output parse
 - `doubao`: native structured output parse

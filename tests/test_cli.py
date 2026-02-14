@@ -1,12 +1,14 @@
 """CLI command parsing and output tests."""
 
 import json
+import tomllib
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from typer.testing import CliRunner
 
+import openpraxis.config as config_module
 from openpraxis.cli import app
 from openpraxis.db import (
     create_input,
@@ -38,12 +40,33 @@ from openpraxis.models import (
 runner = CliRunner()
 
 
+@pytest.fixture
+def tmp_user_config(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    cfg_dir = tmp_path / ".openpraxis"
+    cfg_path = cfg_dir / "config.toml"
+    monkeypatch.setattr(config_module, "_DEFAULT_CONFIG_DIR", cfg_dir)
+    monkeypatch.setattr(config_module, "_DEFAULT_CONFIG_PATH", cfg_path)
+    monkeypatch.setattr(config_module, "_DEFAULT_DATA_DIR", cfg_dir / "data")
+    monkeypatch.setattr(config_module, "_settings", None)
+    yield cfg_path
+    monkeypatch.setattr(config_module, "_settings", None)
+
+
 def test_cli_help() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "add" in result.output
     assert "list" in result.output
     assert "--provider" in result.output
+    assert "--temperature" not in result.output
+
+
+def test_cli_no_args_shows_help() -> None:
+    result = runner.invoke(app, [])
+    assert result.exit_code == 0
+    assert "Usage" in result.output
+    assert "add" in result.output
+    assert "llm" in result.output
 
 
 def test_add_help() -> None:
@@ -81,6 +104,101 @@ def test_export_help() -> None:
 def test_insight_help() -> None:
     result = runner.invoke(app, ["insight", "--help"])
     assert result.exit_code == 0
+
+
+def test_llm_help_contains_setup_show() -> None:
+    result = runner.invoke(app, ["llm", "--help"])
+    assert result.exit_code == 0
+    assert "setup" in result.output
+    assert "show" in result.output
+
+
+def test_llm_setup_writes_config_file(tmp_user_config, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ARK_API_KEY", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+
+    result = runner.invoke(
+        app,
+        ["llm", "setup"],
+        input="deepseek\n\nsk-test-deepseek-001\n\n",
+    )
+
+    assert result.exit_code == 0
+    assert tmp_user_config.exists()
+    with open(tmp_user_config, "rb") as f:
+        cfg = tomllib.load(f)
+    assert cfg["llm"]["provider"] == "deepseek"
+    assert cfg["llm"]["model"] == "deepseek-chat"
+    assert cfg["llm"]["api_key"] == "sk-test-deepseek-001"
+    assert cfg["llm"]["base_url"] == "https://api.deepseek.com"
+    assert cfg["llm"]["temperature"] == 0.7
+
+
+def test_llm_setup_accepts_pasted_api_key_and_masks_output(
+    tmp_user_config,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    secret = "sk-very-long-secret-value-123456"
+    result = runner.invoke(
+        app,
+        ["llm", "setup"],
+        input=f"openai\n\n{secret}\n\n",
+    )
+
+    assert result.exit_code == 0
+    assert secret not in result.output
+    assert "***" in result.output
+
+
+def test_llm_show_reads_and_masks_current_config(
+    tmp_user_config,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    tmp_user_config.parent.mkdir(parents=True, exist_ok=True)
+    tmp_user_config.write_text(
+        (
+            "[llm]\n"
+            "provider = \"openai\"\n"
+            "api_key = \"sk-show-secret\"\n"
+            "base_url = \"\"\n"
+            "model = \"gpt-4o\"\n"
+            "temperature = 0.7\n"
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["llm", "show"])
+    assert result.exit_code == 0
+    assert "openai" in result.output
+    assert "gpt-4o" in result.output
+    assert "api_key_source" in result.output
+    assert "config" in result.output
+    assert "sk-show-secret" not in result.output
+    assert "***" in result.output
+
+
+def test_global_overrides_still_work_after_setup(tmp_user_config) -> None:
+    setup_result = runner.invoke(
+        app,
+        ["llm", "setup"],
+        input="doubao\n\ndb-secret-key\n\n",
+    )
+    assert setup_result.exit_code == 0
+
+    with patch("openpraxis.cli.set_runtime_llm_overrides") as mock_overrides:
+        result = runner.invoke(app, ["--provider", "kimi", "llm", "show"])
+
+    assert result.exit_code == 0
+    mock_overrides.assert_called_once_with(
+        provider="kimi",
+        api_key=None,
+        base_url=None,
+        model=None,
+    )
 
 
 # --- Functional tests with mock graph and DB ---
@@ -324,5 +442,4 @@ def test_global_provider_override_option(tmp_db, tmp_path, mock_tagger_output, m
         api_key=None,
         base_url=None,
         model=None,
-        temperature=None,
     )
