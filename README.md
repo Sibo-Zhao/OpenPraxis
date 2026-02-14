@@ -1,6 +1,6 @@
 # OpenPraxis
 
-AI Bandwidth Amplifier - turn notes into structured practice and actionable learning insights.
+Built for applied mastery of your local knowledge bases, notes, and other multi-source materials: turn raw inputs into structured practice so you can use what you know, not just store it.
 
 ## Requirements
 
@@ -63,6 +63,10 @@ praxis --provider deepseek --model deepseek-chat answer <scene_id> --file answer
 pytest
 ruff check src tests
 ```
+
+## Vision
+
+Increase your "AI bandwidth" by converting fragmented inputs into reusable practice loops that build real transfer: faster recall, clearer decisions, better on-the-job application.
 
 ## License
 
