@@ -8,7 +8,6 @@ from openpraxis.graph import build_graph, route_after_tagger, route_after_coach,
 from openpraxis.models import (
     CapabilityMap,
     InputType,
-    PracticeMessage,
     PracticeSeed,
     RoutingPolicy,
     SceneType,

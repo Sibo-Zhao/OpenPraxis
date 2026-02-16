@@ -404,6 +404,26 @@ def test_add_with_mock_graph(tmp_db, tmp_path, mock_llm, mock_tagger_output, moc
     assert "Summary" in result.output or "Practice scene" in result.output
 
 
+def test_add_image_with_mock_graph(tmp_db, tmp_path, mock_llm, mock_tagger_output, mock_scene) -> None:
+    """Test add command with image input using mocked vision + graph invocation."""
+    test_file = tmp_path / "input.png"
+    test_file.write_bytes(b"\x89PNG\r\n\x1a\nfake")
+
+    mock_result = {
+        "tagger_output": mock_tagger_output,
+        "scene": mock_scene,
+    }
+    mock_graph = MagicMock()
+    mock_graph.invoke.return_value = mock_result
+
+    with patch("openpraxis.llm.call_vision_text", return_value="Extracted from image"), \
+         patch("openpraxis.cli.get_compiled_graph", return_value=mock_graph):
+        result = runner.invoke(app, ["add", str(test_file)])
+
+    assert result.exit_code == 0
+    assert "Summary" in result.output or "Practice scene" in result.output
+
+
 def test_add_duplicate(tmp_db, tmp_path) -> None:
     """Test that adding same file twice warns about duplicate."""
     test_file = tmp_path / "dup.md"

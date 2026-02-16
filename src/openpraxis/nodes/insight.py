@@ -1,7 +1,7 @@
 """Insight generation node."""
 
 from openpraxis.llm import call_structured
-from openpraxis.models import InsightCard, InsightList
+from openpraxis.models import InsightList
 from openpraxis.prompts import get_insight_generator_system_prompt
 
 

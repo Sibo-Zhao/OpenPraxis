@@ -49,6 +49,8 @@ praxis export [--format md|json] [--output <path>]
 praxis list [--type report|interview|reflection|idea] [--limit N]
 ```
 
+`praxis add` accepts both text/markdown files and common image formats (`.png`, `.jpg`, `.webp`, ...). For images, OpenPraxis uses a vision-capable model to extract readable text first (providers: `openai` or `doubao`).
+
 Global runtime LLM overrides (for a single command):
 
 ```bash

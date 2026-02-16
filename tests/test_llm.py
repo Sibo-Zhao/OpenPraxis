@@ -1,12 +1,13 @@
 """LLM provider compatibility tests."""
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 from pydantic import BaseModel
 
-from openpraxis.llm import call_chat_structured, call_structured
+from openpraxis.llm import call_chat_structured, call_structured, call_vision_text
 
 
 class DemoResponse(BaseModel):
@@ -96,3 +97,27 @@ def test_call_structured_deepseek_invalid_json_raises(
 
     with pytest.raises(RuntimeError, match="does not match"):
         call_structured("system", "user", DemoResponse)
+
+
+def test_call_vision_text_openai_uses_responses_create(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    client = MagicMock()
+    client.responses.create.return_value = SimpleNamespace(output_text="vision ok")
+
+    monkeypatch.setattr("openpraxis.llm.get_settings", lambda: _settings("openai"))
+    monkeypatch.setattr("openpraxis.llm.get_client", lambda: client)
+
+    img = tmp_path / "img.png"
+    img.write_bytes(b"\x89PNG\r\n\x1a\nfake")
+
+    result = call_vision_text(img, "what is in the image?")
+
+    assert result == "vision ok"
+    kwargs = client.responses.create.call_args.kwargs
+    assert kwargs["model"] == "test-model"
+    assert kwargs["temperature"] == 0.0
+    assert kwargs["input"][0]["role"] == "user"
+    assert kwargs["input"][0]["content"][0]["type"] == "input_image"
+    assert kwargs["input"][0]["content"][1]["type"] == "input_text"

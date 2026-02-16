@@ -1,6 +1,9 @@
 """OpenAI client wrapper."""
 
+import base64
 import json
+import mimetypes
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
@@ -71,6 +74,86 @@ def _as_responses_input(messages: list[dict]) -> list[dict]:
             }
         )
     return converted
+
+
+def _guess_image_mime(path: Path) -> str:
+    mime, _ = mimetypes.guess_type(str(path))
+    if mime and mime.startswith("image/"):
+        return mime
+    # Fallback for common extensions when mimetypes is incomplete.
+    suffix = path.suffix.lower().lstrip(".")
+    if suffix in {"jpg", "jpeg"}:
+        return "image/jpeg"
+    if suffix in {"png", "webp", "gif", "bmp", "tiff"}:
+        return f"image/{suffix}"
+    return "image/png"
+
+
+def _image_to_data_url(path: Path) -> str:
+    mime = _guess_image_mime(path)
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
+
+
+def _response_text(response) -> str:
+    text = getattr(response, "output_text", None)
+    if isinstance(text, str) and text.strip():
+        return text
+
+    # Best-effort fallback across SDK variants.
+    output = getattr(response, "output", None)
+    if not isinstance(output, list):
+        raise RuntimeError("LLM returned empty text output.")
+    chunks: list[str] = []
+    for item in output:
+        content = getattr(item, "content", None) or item.get("content") if isinstance(item, dict) else None
+        if not isinstance(content, list):
+            continue
+        for part in content:
+            part_type = getattr(part, "type", None) or part.get("type") if isinstance(part, dict) else None
+            if part_type in {"output_text", "text"}:
+                val = getattr(part, "text", None) or part.get("text") if isinstance(part, dict) else None
+                if isinstance(val, str):
+                    chunks.append(val)
+    combined = "\n".join([c for c in chunks if c.strip()]).strip()
+    if not combined:
+        raise RuntimeError("LLM returned empty text output.")
+    return combined
+
+
+def call_vision_text(
+    image: str | Path,
+    prompt: str,
+    model: str | None = None,
+    temperature: float = 0.0,
+) -> str:
+    """Call a vision-capable model with an image + prompt, return plain text."""
+    settings = get_settings()
+    if settings.llm_provider not in {"openai", "doubao"}:
+        raise ValueError(
+            f"Vision input is only supported for openai/doubao providers (got {settings.llm_provider})."
+        )
+
+    if isinstance(image, Path):
+        image_url = _image_to_data_url(image)
+    else:
+        image_url = str(image)
+
+    client = get_client()
+    response = client.responses.create(
+        model=model or settings.model_name,
+        input=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "input_image", "image_url": image_url},
+                    {"type": "input_text", "text": str(prompt)},
+                ],
+            }
+        ],
+        temperature=temperature,
+    )
+    return _response_text(response)
 
 
 def _call_openai_parse(

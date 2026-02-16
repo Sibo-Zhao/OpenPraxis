@@ -10,7 +10,6 @@ from openpraxis.models import (
     InsightList,
     InsightType,
     InputType,
-    PracticeMessage,
     PracticePerformance,
     PracticeScene,
     PracticeSceneLLM,

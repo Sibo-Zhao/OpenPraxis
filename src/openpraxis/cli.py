@@ -187,6 +187,26 @@ def _hash_file(path: Path) -> str:
     return h.hexdigest()
 
 
+_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff", ".tif"}
+
+
+def _is_image_file(path: Path) -> bool:
+    return path.suffix.lower() in _IMAGE_SUFFIXES
+
+
+def _image_to_text(path: Path, type_hint: str | None) -> str:
+    from openpraxis.llm import call_vision_text
+
+    prompt = (
+        "Extract all readable text from the image. Preserve headings, paragraphs, bullet points, and tables. "
+        "If the image is code, keep formatting. If there is little/no text, describe the image clearly. "
+        "Return plain text only."
+    )
+    if type_hint:
+        prompt = f"[User type hint: {type_hint}]\n\n{prompt}"
+    return call_vision_text(path, prompt=prompt, temperature=0.0)
+
+
 def _get_conn():
     settings = get_settings()
     conn = get_connection(settings.db_path)
@@ -202,7 +222,22 @@ def add(
 ) -> None:
     """Add file and run Tagger, optionally enter Practice."""
     settings, conn = _get_conn()
-    raw_text = file.read_text(encoding="utf-8", errors="replace")
+    if _is_image_file(file):
+        try:
+            raw_text = _image_to_text(file, type)
+        except Exception as exc:
+            console.print(
+                Panel(
+                    str(exc),
+                    title="Vision Error",
+                    border_style="red",
+                    box=box.ROUNDED,
+                )
+            )
+            conn.close()
+            raise typer.Exit(1) from exc
+    else:
+        raw_text = file.read_text(encoding="utf-8", errors="replace")
     file_hash = _hash_file(file)
     if not force:
         existing = get_input_by_hash(conn, file_hash)
