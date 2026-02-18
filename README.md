@@ -2,6 +2,8 @@
 
 Built for applied mastery of your local knowledge bases, notes, and other multi-source materials: turn raw inputs into structured practice so you can use what you know, not just store it.
 
+Now supports an OpenClawn-oriented knowledge assistant workflow via skills: ingest personal local knowledge into a local KB and generate retrieval practice during import, so users can actively master stored knowledge instead of only archiving it.
+
 ## Requirements
 
 - Python 3.11+
@@ -48,6 +50,19 @@ praxis show <id>
 praxis export [--format md|json] [--output <path>]
 praxis list [--type report|interview|reflection|idea] [--limit N]
 ```
+
+## OpenClawn + Skills
+
+Use the bundled skill at `openclawn-knowledge-coach/` to run a CLI-first workflow for local-knowledge mastery:
+
+- Clone and install OpenPraxis
+- Configure provider/model/API key
+- Import local files with `praxis add`
+- Generate/re-run practice with `praxis practice`
+- Submit answers with `praxis answer`
+- Review/export insights with `praxis insight`, `praxis show`, and `praxis export`
+
+The skill documents command chaining, output contracts, and exercise-generation patterns for retrieval practice on personal local knowledge bases.
 
 `praxis add` accepts both text/markdown files and common image formats (`.png`, `.jpg`, `.webp`, ...). For images, OpenPraxis uses a vision-capable model to extract readable text first (providers: `openai` or `doubao`).
 
