@@ -2,7 +2,7 @@
 
 Built for applied mastery of your local knowledge bases, notes, and other multi-source materials: turn raw inputs into structured practice so you can use what you know, not just store it.
 
-Now supports an OpenClawn-oriented knowledge assistant workflow via skills: ingest personal local knowledge into a local KB and generate retrieval practice during import, so users can actively master stored knowledge instead of only archiving it.
+Now supports an OpenClaw-oriented knowledge assistant workflow via skills: ingest personal local knowledge into a local KB and generate retrieval practice during import, so users can actively master stored knowledge instead of only archiving it.
 
 ## Requirements
 
@@ -51,9 +51,9 @@ praxis export [--format md|json] [--output <path>]
 praxis list [--type report|interview|reflection|idea] [--limit N]
 ```
 
-## OpenClawn + Skills
+## OpenClaw + Skills
 
-Use the bundled skill at `openclawn-knowledge-coach/` to run a CLI-first workflow for local-knowledge mastery:
+Use the bundled skill at `openclaw-knowledge-coach/` to run a CLI-first workflow for local-knowledge mastery:
 
 - Clone and install OpenPraxis
 - Configure provider/model/API key

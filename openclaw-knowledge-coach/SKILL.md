@@ -1,11 +1,11 @@
 ---
-name: openclawn-knowledge-coach
-description: Build and operate an OpenClawn-based local knowledge assistant that imports personal/local documents into a knowledge base and creates practice exercises during import. Use when users ask to set up OpenClawn knowledge workflows, ingest local notes/files, structure chunks and tags, or generate retrieval practice (quiz, flashcards, recall prompts) to master stored knowledge.
+name: openclaw-knowledge-coach
+description: Build and operate an OpenClaw-based local knowledge assistant that imports personal/local documents into a knowledge base and creates practice exercises during import. Use when users ask to set up OpenClaw knowledge workflows, ingest local notes/files, structure chunks and tags, or generate retrieval practice (quiz, flashcards, recall prompts) to master stored knowledge.
 ---
 
-# OpenClawn Knowledge Coach
+# OpenClaw Knowledge Coach
 
-Create a local knowledge workflow in OpenClawn where importing knowledge also produces practice material for retention.
+Create a local knowledge workflow in OpenClaw where importing knowledge also produces practice material for retention.
 
 ## CLI First
 
@@ -49,8 +49,8 @@ export OPENAI_API_KEY="your_key_here"
 - Normalize each source into a record with `doc_id`, `title`, `source_path`, `tags`, `created_at`, and `content`.
 - Split long content into chunks with stable IDs such as `doc_id#chunk-001`.
 
-3. Import into OpenClawn
-- Ingest normalized records into the local OpenClawn knowledge base.
+3. Import into OpenClaw
+- Ingest normalized records into the local OpenClaw knowledge base.
 - Keep a deterministic mapping between source file and imported IDs for later updates.
 
 4. Generate exercises at import time

@@ -1,4 +1,0 @@
-interface:
-  display_name: "OpenClawn Knowledge Coach"
-  short_description: "Import local knowledge and auto-create practice drills."
-  default_prompt: "Use $openclawn-knowledge-coach to import my local notes into OpenClawn and generate review exercises that help me retain what I saved."

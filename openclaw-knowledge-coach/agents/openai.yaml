@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenClaw Knowledge Coach"
+  short_description: "Import local knowledge and auto-create practice drills."
+  default_prompt: "Use $openclaw-knowledge-coach to import my local notes into OpenClaw and generate review exercises that help me retain what I saved."
