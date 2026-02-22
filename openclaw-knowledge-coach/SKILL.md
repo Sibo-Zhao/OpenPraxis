@@ -5,23 +5,25 @@ description: Build and operate an OpenClaw-based local knowledge assistant that 
 
 # OpenClaw Knowledge Coach
 
-Create a local knowledge workflow in OpenClaw where importing knowledge also produces practice material for retention.
+Create a local knowledge workflow in OpenClaw where importing knowledge also produces practice material for retention. OpenPraxis is on PyPI: use `pip install openpraxis` to get the `praxis` CLI.
 
 ## CLI First
 
 Use OpenPraxis CLI as the default execution path.
 
-Bootstrap from GitHub and enter repo root:
+**Install from PyPI (recommended):**
+
+```bash
+pip install openpraxis
+praxis --help
+```
+
+Or install from source for development:
 
 ```bash
 git clone https://github.com/Sibo-Zhao/OpenPraxis.git
 cd OpenPraxis
-```
-
-Install and verify CLI:
-
-```bash
-pip install -e .
+pip install -e ".[dev]"
 praxis --help
 ```
 

@@ -62,9 +62,9 @@ praxis list [--type report|interview|reflection|idea] [--limit N]
 
 ## OpenClaw + Skills
 
-Use the bundled skill at `openclaw-knowledge-coach/` to run a CLI-first workflow for local-knowledge mastery:
+Use the bundled skill at `openclaw-knowledge-coach/` to run a CLI-first workflow for local-knowledge mastery. OpenPraxis is installable via `pip install openpraxis`.
 
-- Clone and install OpenPraxis
+- Install OpenPraxis (`pip install openpraxis`) or clone and install from source
 - Configure provider/model/API key
 - Import local files with `praxis add`
 - Generate/re-run practice with `praxis practice`
