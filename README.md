@@ -11,9 +11,18 @@ Now supports an OpenClaw-oriented knowledge assistant workflow via skills: inges
 
 ## Installation
 
+Install from PyPI:
+
 ```bash
-pip install -e .
-# or install with dev dependencies: pip install -e ".[dev]"
+pip install openpraxis
+```
+
+Or install from source (for development):
+
+```bash
+git clone https://github.com/Sibo-Zhao/OpenPraxis.git
+cd OpenPraxis
+pip install -e ".[dev]"
 ```
 
 ## Configuration

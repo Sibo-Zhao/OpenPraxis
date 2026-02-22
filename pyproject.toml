@@ -7,7 +7,26 @@ name = "openpraxis"
 version = "0.1.0"
 description = "AI Bandwidth Amplifier - turn notes into structured practice and actionable learning insights"
 readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.11"
+authors = [
+    {name = "OpenPraxis Contributors"},
+]
+keywords = ["ai", "learning", "practice", "llm", "knowledge-management", "spaced-repetition"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
 dependencies = [
     "typer>=0.9.0",
     "rich>=13.0",
@@ -26,11 +45,26 @@ dev = [
     "ruff>=0.3",
 ]
 
+[project.urls]
+Homepage = "https://github.com/Sibo-Zhao/OpenPraxis"
+Repository = "https://github.com/Sibo-Zhao/OpenPraxis"
+Issues = "https://github.com/Sibo-Zhao/OpenPraxis/issues"
+
 [project.scripts]
 praxis = "openpraxis.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/openpraxis"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/openpraxis/",
+    "tests/",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+    "config.example.toml",
+]
 
 [tool.ruff]
 target-version = "py311"
