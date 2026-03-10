@@ -1,8 +1,8 @@
 """Insight generation node."""
 
-from openpraxis.llm import call_structured
 from openpraxis.models import InsightList
 from openpraxis.prompts import get_insight_generator_system_prompt
+from openpraxis.runtime import get_backend
 
 
 def insight_generator_node(state: dict) -> dict:
@@ -20,7 +20,8 @@ def insight_generator_node(state: dict) -> dict:
         f"Improvement vectors: {performance.improvement_vectors}\n\n"
         f"scene_id: {scene.scene_id}"
     )
-    result: InsightList = call_structured(
+    backend = get_backend()
+    result: InsightList = backend.call_structured(
         get_insight_generator_system_prompt(),
         user_content,
         InsightList,

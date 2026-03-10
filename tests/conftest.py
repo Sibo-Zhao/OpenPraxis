@@ -1,8 +1,12 @@
 """Shared fixtures and mocks."""
 
-import pytest
-from unittest.mock import patch
+from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
+from openpraxis.llm_backends.base import LLMBackend
 from openpraxis.models import (
     CapabilityMap,
     CoachReply,
@@ -120,6 +124,27 @@ def mock_coach_reply_sequence():
     ]
 
 
+class _MockBackend(LLMBackend):
+    """In-memory mock backend used by the ``mock_llm`` fixture."""
+
+    def __init__(
+        self,
+        fake_call,
+        fake_chat_call,
+    ):
+        self._fake_call = fake_call
+        self._fake_chat_call = fake_chat_call
+
+    def call_structured(self, system_prompt, user_content, response_model, **kwargs):
+        return self._fake_call(system_prompt, user_content, response_model, **kwargs)
+
+    def call_chat_structured(self, messages, response_model, **kwargs):
+        return self._fake_chat_call(messages, response_model, **kwargs)
+
+    def call_vision_text(self, image, prompt, **kwargs):
+        return "mock vision text"
+
+
 @pytest.fixture
 def mock_llm(
     mock_tagger_output: TaggerOutput,
@@ -128,7 +153,9 @@ def mock_llm(
     mock_insight_list: InsightList,
     mock_coach_reply_sequence: list[CoachReply],
 ):
-    """Patch call_structured and call_chat_structured to return fixtures."""
+    """Install a mock LLM backend via runtime.set_backend()."""
+    import openpraxis.runtime as runtime
+
     global _coach_call_count
     _coach_call_count = 0
 
@@ -159,8 +186,7 @@ def mock_llm(
             return mock_coach_reply_sequence[idx]
         raise ValueError(f"Unknown response_model: {response_model}")
 
-    with patch("openpraxis.nodes.tagger.call_structured", side_effect=fake_call), \
-         patch("openpraxis.nodes.practice.call_structured", side_effect=fake_call), \
-         patch("openpraxis.nodes.practice.call_chat_structured", side_effect=fake_chat_call), \
-         patch("openpraxis.nodes.insight.call_structured", side_effect=fake_call):
-        yield
+    backend = _MockBackend(fake_call, fake_chat_call)
+    runtime.set_backend(backend)
+    yield
+    runtime.reset()

@@ -4,7 +4,6 @@ from uuid import uuid4
 
 from langgraph.types import interrupt
 
-from openpraxis.llm import call_chat_structured, call_structured
 from openpraxis.models import (
     CoachReply,
     PracticeMessage,
@@ -17,6 +16,7 @@ from openpraxis.prompts import (
     get_practice_evaluator_system_prompt,
     get_practice_generator_system_prompt,
 )
+from openpraxis.runtime import get_backend
 
 MAX_PRACTICE_ROUNDS = 3
 
@@ -32,7 +32,8 @@ def practice_generator_node(state: dict) -> dict:
         f"Preferred scene type: {seed.preferred_scene.value}\n"
         f"Skills: {seed.skills}\nConcepts: {seed.concepts}\nConstraints: {seed.constraints}"
     )
-    llm_scene: PracticeSceneLLM = call_structured(
+    backend = get_backend()
+    llm_scene: PracticeSceneLLM = backend.call_structured(
         get_practice_generator_system_prompt(),
         user_content,
         PracticeSceneLLM,
@@ -77,7 +78,8 @@ def coach_turn_node(state: dict) -> dict:
     practice_messages: list[PracticeMessage] = state.get("practice_messages", [])
 
     messages = _build_coach_messages(scene, practice_messages)
-    reply: CoachReply = call_chat_structured(messages, CoachReply)
+    backend = get_backend()
+    reply: CoachReply = backend.call_chat_structured(messages, CoachReply)
 
     coach_msg = PracticeMessage(role="coach", content=reply.message)
     return {
@@ -139,7 +141,8 @@ def practice_evaluator_node(state: dict) -> dict:
         f"Practice conversation:\n{conversation}\n\n"
         f"Raw learning content (reference):\n{raw_text}"
     )
-    performance: PracticePerformance = call_structured(
+    backend = get_backend()
+    performance: PracticePerformance = backend.call_structured(
         get_practice_evaluator_system_prompt(),
         user_content,
         PracticePerformance,

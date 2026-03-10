@@ -1,8 +1,8 @@
 """Tagger Agent node."""
 
-from openpraxis.llm import call_structured
 from openpraxis.models import RoutingPolicy, TaggerOutput
 from openpraxis.prompts import get_tagger_system_prompt
+from openpraxis.runtime import get_backend
 
 
 def tagger_node(state: dict) -> dict:
@@ -13,7 +13,8 @@ def tagger_node(state: dict) -> dict:
     if type_hint:
         user_content = f"[User type hint: {type_hint}]\n\n{raw_text}"
 
-    output: TaggerOutput = call_structured(
+    backend = get_backend()
+    output: TaggerOutput = backend.call_structured(
         get_tagger_system_prompt(),
         user_content,
         TaggerOutput,

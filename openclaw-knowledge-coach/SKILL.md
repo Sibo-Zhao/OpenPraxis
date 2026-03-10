@@ -1,40 +1,40 @@
 ---
 name: openclaw-knowledge-coach
-description: Build and operate an OpenClaw-based local knowledge assistant that imports personal/local documents into a knowledge base and creates practice exercises during import. Use when users ask to set up OpenClaw knowledge workflows, ingest local notes/files, structure chunks and tags, or generate retrieval practice (quiz, flashcards, recall prompts) to master stored knowledge.
+description: OpenClaw-native knowledge retention skill. Imports local documents, generates retrieval practice, evaluates answers, and produces insight cards — all using the host agent's LLM with zero extra API key configuration. Use when users ask to ingest local knowledge, generate practice exercises, or master stored knowledge.
 ---
 
 # OpenClaw Knowledge Coach
 
-Create a local knowledge workflow in OpenClaw where importing knowledge also produces practice material for retention. OpenPraxis is on PyPI: use `pip install openpraxis` to get the `praxis` CLI.
+An OpenClaw-native skill for local knowledge retention. Import knowledge, generate practice, evaluate answers, and produce insight cards — all powered by the host agent's model, with **zero extra API key configuration**.
 
-## CLI First
+## OpenClaw Users (Recommended)
 
-Use OpenPraxis CLI as the default execution path.
+When running inside an OpenClaw agent, the host provides model configuration.
+No `praxis llm setup` or API key setup is required.
 
-**Install from PyPI (recommended):**
+Install the library:
 
 ```bash
 pip install openpraxis
-praxis --help
 ```
 
-Or install from source for development:
+The skill uses the host agent's LLM capability automatically. Set the environment variable to enable OpenClaw mode:
 
 ```bash
-git clone https://github.com/Sibo-Zhao/OpenPraxis.git
-cd OpenPraxis
-pip install -e ".[dev]"
-praxis --help
+export OPENPRAXIS_MODE=openclaw
 ```
 
-Configure provider/model/API key before ingestion/practice:
+## Standalone CLI (Fallback)
+
+For use outside of an OpenClaw agent, configure your own provider:
 
 ```bash
+pip install openpraxis
 praxis llm setup
 praxis llm show
 ```
 
-Use environment variables when needed (higher priority than config file):
+Environment variables override config file values:
 
 ```bash
 export OPENAI_API_KEY="your_key_here"

@@ -416,8 +416,7 @@ def test_add_image_with_mock_graph(tmp_db, tmp_path, mock_llm, mock_tagger_outpu
     mock_graph = MagicMock()
     mock_graph.invoke.return_value = mock_result
 
-    with patch("openpraxis.llm.call_vision_text", return_value="Extracted from image"), \
-         patch("openpraxis.cli.get_compiled_graph", return_value=mock_graph):
+    with patch("openpraxis.cli.get_compiled_graph", return_value=mock_graph):
         result = runner.invoke(app, ["add", str(test_file)])
 
     assert result.exit_code == 0

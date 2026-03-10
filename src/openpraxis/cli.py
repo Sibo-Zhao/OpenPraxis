@@ -92,7 +92,10 @@ def global_options(
 
 @llm_app.command("setup")
 def llm_setup() -> None:
-    """Interactive setup for provider/model/api key."""
+    """Interactive setup for provider/model/api key (standalone CLI mode only).
+
+    OpenClaw users do not need this — the host agent provides model configuration.
+    """
     config = load_config_dict()
     llm_cfg = dict(config.get("llm", {}))
 
@@ -164,13 +167,17 @@ def llm_setup() -> None:
 
 @llm_app.command("show")
 def llm_show() -> None:
-    """Show active LLM config and API key source."""
+    """Show active LLM config, API key source, and execution mode."""
+    from openpraxis.runtime import get_execution_mode
+
     settings = get_settings()
     key_source = get_llm_api_key_source(settings.llm_provider)
+    mode = get_execution_mode()
 
     table = Table(title="LLM Config", box=box.SIMPLE_HEAD)
     table.add_column("Key", style="cyan", no_wrap=True)
     table.add_column("Value", style="white")
+    table.add_row("execution_mode", mode.value)
     table.add_row("provider", settings.llm_provider)
     table.add_row("model", settings.model_name)
     table.add_row("base_url", settings.llm_base_url or "(none)")
@@ -195,7 +202,7 @@ def _is_image_file(path: Path) -> bool:
 
 
 def _image_to_text(path: Path, type_hint: str | None) -> str:
-    from openpraxis.llm import call_vision_text
+    from openpraxis.runtime import get_backend
 
     prompt = (
         "Extract all readable text from the image. Preserve headings, paragraphs, bullet points, and tables. "
@@ -204,7 +211,7 @@ def _image_to_text(path: Path, type_hint: str | None) -> str:
     )
     if type_hint:
         prompt = f"[User type hint: {type_hint}]\n\n{prompt}"
-    return call_vision_text(path, prompt=prompt, temperature=0.0)
+    return get_backend().call_vision_text(path, prompt=prompt, temperature=0.0)
 
 
 def _get_conn():
